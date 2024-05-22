@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="bin\Debug\net8.0\Test_1.txt" />
+    <Content Include="bin\Debug\net8.0\Test_2.txt" />
+    <Content Include="bin\Debug\net8.0\Test_3.txt" />
+    <Content Include="bin\Debug\net8.0\Test_4.txt" />
+    <Content Include="bin\Debug\net8.0\Test_5.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NE_DLL\NE_DLL.csproj" />
+  </ItemGroup>
+
+</Project>
