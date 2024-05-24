@@ -1,30 +1,24 @@
 ﻿using ForceCalculation.Library;
+using Microsoft.Extensions.Logging;
 using System.Numerics;
 
-namespace ForceCalculation.ConsoleApp
+const int a = 4, modP1 = 8, modP2 = 16;
+
+Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options =>
 {
-    internal class Program
-    {
-        static void Main(string[] args)
-        {
-            const int a = 4, modP1 = 8, modP2 = 16;
-            ForceSystem fs = new ForceSystem();
+    options.SingleLine = true;
+}));
 
-            Force P1 = new Force(new Vector3(a, 0, 0), new Vector3(a, a, 0), modP1);
-            Force P2 = new Force(new Vector3(a, a, 0), new Vector3(0, a, a), modP2);
+ILogger logger = factory.CreateLogger<Program>();
 
+ForceSystem fs = new ForceSystem(logger);
 
-            fs.AddForce(P1);
-            fs.AddForce(P2);
+Force P1 = new Force(new Vector3(a, 0, 0), new Vector3(a, a, 0), modP1);
+Force P2 = new Force(new Vector3(a, a, 0), new Vector3(0, a, a), modP2);
 
-            double x = fs.GetXProjection();
-            double y = fs.GetYProjection();
-            double z = fs.GetZProjection();
-            double r = ForceSystem.GetR(x,y,z);
-            Console.WriteLine("X: " + x);
-            Console.WriteLine("Y: " + y);
-            Console.WriteLine("Z: " + z);
-            Console.WriteLine("R: " + r);
-        }
-    }
-}
+fs.AddForce(P1);
+fs.AddForce(P2);
+
+fs.GetMomentum();

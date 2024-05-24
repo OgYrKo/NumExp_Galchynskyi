@@ -27,15 +27,21 @@ namespace ForceCalculation.Test
             Assert.Equal(x, fs.GetXProjection());
             Assert.Equal(y, fs.GetYProjection());
             Assert.Equal(z, fs.GetZProjection());
-            Assert.Equal(Math.Sqrt(x*x+y*y+z*z), fs.GetR());
+            Assert.Equal((int)Math.Sqrt(x*x+y*y+z*z), (int)fs.GetR().Length());
         }
 
         [Fact]
         public void CheckMoment()
         {
             int M = 774;
-            Assert.Equal(M, (int)fs.GetMomentum());
+            Assert.Equal(M, (int)fs.GetMomentum().Length());
+        }
 
+        [Fact]
+        public void CheckDynamic()
+        {
+            int M = 240;
+            Assert.Equal(M, (int)fs.GetDynamic().Length());
         }
     }
 }

@@ -1,19 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 
 namespace ForceCalculation.Library
 {
     public class Force
     {
-        private Vector3 StartPoint { get; init; }
+        public string Name { get; init; } = "F?";
+        public Vector3 StartPoint { get; init; }
+        public Vector3 EndPoint { get; init; }
         private Vector3 Vector { get; init; }
         public int ForceValue { get; init; }
         public Force(Vector3 startPoint, Vector3 endPoint, int value)
         {
+            StartPoint = startPoint;
+            EndPoint = endPoint;
+            Vector = endPoint - startPoint;
+            ForceValue = value;
+        }
+        public Force(string name,Vector3 startPoint, Vector3 endPoint, int value)
+        {
+            Name = name;
             StartPoint = startPoint;
             Vector = endPoint - startPoint;
             ForceValue = value;
@@ -42,6 +47,10 @@ namespace ForceCalculation.Library
         {
             Vector3 r = new Vector3((float)GetXProjection(), (float)GetYProjection(), (float)GetZProjection());
             return Vector3.Cross(StartPoint,r);
+        }
+        public override string ToString()
+        {
+            return $"Сила {Name} з модулем {ForceValue} Н, прикладена в точці {StartPoint} з направленням {Vector}";
         }
     }
 }
