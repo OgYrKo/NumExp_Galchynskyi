@@ -13,6 +13,7 @@ namespace ForceCalculation.WinApp
         private ForceSystem? _forceSystem;
         private DrawingSystem? _drawingSystem;
         private const int MARGIN = 10;
+        private const int SCALE = 10;
         private int _forceNameSequence;
         public Form1()
         {
@@ -28,15 +29,7 @@ namespace ForceCalculation.WinApp
         }
         private void SetDrawingSystem()
         {
-            //try
-            //{
-                _drawingSystem = new DrawingSystem(pictureBox1);
-            //}
-            //catch (Exception exc)
-            //{
-            //    _drawingSystem = null;
-            //    MessageBox.Show(this, exc.Message, "Ошибка инициализации");
-            //}
+            _drawingSystem = new DrawingSystem(pictureBox1);
         }
         private void SetForceSystem()
         {
@@ -71,9 +64,17 @@ namespace ForceCalculation.WinApp
         }
         private void AddForce(Vector3 start, Vector3 end, int mod)
         {
+            if (_forceNameSequence == 1) _drawingSystem?.DrawAxis();
             Force force = new Force(GetLastForceName()!, start, end, mod);
             _forceSystem?.AddForce(force);
+            //DrawForce(force);
             SetForceOnCreate();
+        }
+        private void DrawForce(Force force)
+        {
+            SharpDX.Vector3 start = new SharpDX.Vector3(force.StartPoint.X / SCALE, force.StartPoint.Y / SCALE, force.StartPoint.Z / SCALE);
+            SharpDX.Vector3 end = new SharpDX.Vector3(force.EndPoint.X / SCALE, force.EndPoint.Y / SCALE, force.EndPoint.Z / SCALE);
+            _drawingSystem?.DrawVector(start, end, force.Name);
         }
         private void SetForceOnCreate()
         {
@@ -89,10 +90,12 @@ namespace ForceCalculation.WinApp
         }
         private void buttonCalculate_Click(object sender, EventArgs e)
         {
-            _forceSystem?.GetMomentum();
+            _forceSystem?.GetDynamic();//..GetMomentum();
         }
         private void buttonDefault_Click(object sender, EventArgs e)
         {
+            comboBox1.Items.Clear();
+            SetForceSystem();
             const int a = 30, b = 40, c = 20, modP1 = 8, modP2 = 4, modP3 = 6, modP4 = 20;
             AddForce(new Vector3(a, 0, 0), new Vector3(0, 0, 0), modP1);
             AddForce(new Vector3(a, 0, c), new Vector3(a, b, c), modP2);
@@ -150,6 +153,40 @@ namespace ForceCalculation.WinApp
             Vector3 end = GetPoint(textBoxX2, textBoxY2, textBoxZ2);
             int mod = int.Parse(textBoxMod.Text);
             AddForce(start, end, mod);
+        }
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                //вперед
+                case Keys.Up:
+                    _drawingSystem?.MoveCameraUp();
+                    break;
+                //назад
+                case Keys.Down:
+                    _drawingSystem?.MoveCameraDown();
+                    break;
+                case Keys.Left:
+                    _drawingSystem?.MoveCameraLeft();
+                    break;
+                case Keys.Right:
+                    _drawingSystem?.MoveCameraRight();
+                    break;
+                //вращение влево
+                case Keys.A:
+                    _drawingSystem?.RotateCameraLeft();
+                    break;
+                //вращение вправо
+                case Keys.D:
+                    _drawingSystem?.RotateCameraRight();
+                    break;
+                    //case Keys.W:
+                    //    rotationX = 0.1f;
+                    //    break;
+                    //case Keys.S:
+                    //    rotationX = -0.1f;
+                    //    break;
+            }
         }
     }
 }

@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            comboBox1 = new ComboBox();
             richTextBox1 = new RichTextBox();
             pictureBox1 = new PictureBox();
             groupBox1 = new GroupBox();
@@ -47,16 +48,25 @@
             label2 = new Label();
             label1 = new Label();
             buttonAdd = new Button();
-            comboBox1 = new ComboBox();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             groupBox1.SuspendLayout();
             SuspendLayout();
+            // 
+            // comboBox1
+            // 
+            comboBox1.Anchor = AnchorStyles.Top;
+            comboBox1.Location = new Point(296, 54);
+            comboBox1.Name = "comboBox1";
+            comboBox1.Size = new Size(245, 40);
+            comboBox1.TabIndex = 1;
+            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
             // 
             // richTextBox1
             // 
             richTextBox1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             richTextBox1.Location = new Point(12, 264);
             richTextBox1.Name = "richTextBox1";
+            richTextBox1.ReadOnly = true;
             richTextBox1.Size = new Size(706, 532);
             richTextBox1.TabIndex = 0;
             richTextBox1.Text = "";
@@ -251,16 +261,6 @@
             buttonAdd.UseVisualStyleBackColor = true;
             buttonAdd.Click += buttonAdd_Click;
             // 
-            // comboBox1
-            // 
-            comboBox1.Anchor = AnchorStyles.Top;
-            comboBox1.FormattingEnabled = true;
-            comboBox1.Location = new Point(296, 54);
-            comboBox1.Name = "comboBox1";
-            comboBox1.Size = new Size(245, 40);
-            comboBox1.TabIndex = 1;
-            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
-            // 
             // Form1
             // 
             AutoScaleMode = AutoScaleMode.None;
@@ -273,6 +273,7 @@
             Text = "Form1";
             WindowState = FormWindowState.Maximized;
             Load += Form1_Load;
+            KeyDown += Form1_KeyDown;
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             groupBox1.ResumeLayout(false);
             groupBox1.PerformLayout();

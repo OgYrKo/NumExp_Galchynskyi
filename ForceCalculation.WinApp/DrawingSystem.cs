@@ -1,17 +1,12 @@
-﻿using System;
-using System.Drawing;
-using System.Windows.Forms;
-using SharpDX;
+﻿using SharpDX;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
-using SharpDX.Mathematics.Interop;
 using SharpDX.Direct3D;
-using Device = SharpDX.Direct3D11.Device;
 using Buffer = SharpDX.Direct3D11.Buffer;
-using System.Drawing.Drawing2D;
-using Color = System.Drawing.Color;
-using Matrix = SharpDX.Matrix;
-//using System.Numerics;
+using Device = SharpDX.Direct3D11.Device;
+using SharpDX.Mathematics.Interop;
+using SharpDX.D3DCompiler;
+using Color = SharpDX.Color;
 
 namespace ForceCalculation.WinApp
 {
@@ -21,14 +16,29 @@ namespace ForceCalculation.WinApp
         private SwapChain swapChain;
         private RenderTargetView renderTargetView;
         private DepthStencilView depthStencilView;
+        private VertexShader vertexShader;
+        private PixelShader pixelShader;
+        private InputLayout inputLayout;
+        private Buffer vertexBuffer;
+        private Buffer constantBuffer;
+
+        private Vector3 cameraPosition;
+        private Vector3 cameraTarget;
+        private Matrix viewMatrix;
+        private Matrix projectionMatrix;
+
+        private List<Vector3> vectors = new List<Vector3>();
+        private List<string> vectorNames = new List<string>();
 
         public DrawingSystem(Control renderWindow)
         {
-            StartSetup(renderWindow);
+            InitializeDevice(renderWindow);
+            LoadShaders();
+            SetupCamera();
             DrawAxis();
         }
 
-        private void StartSetup(Control renderWindow)
+        private void InitializeDevice(Control renderWindow)
         {
             var swapChainDescription = new SwapChainDescription
             {
@@ -72,92 +82,166 @@ namespace ForceCalculation.WinApp
             context.Rasterizer.SetViewport(new ViewportF(0, 0, renderWindow.ClientSize.Width, renderWindow.ClientSize.Height));
         }
 
-        private void DrawAxis()
+        private void LoadShaders()
         {
-            var context = device.ImmediateContext;
-            context.ClearRenderTargetView(renderTargetView, new RawColor4(0, 0.5f, 0.5f, 1));
-            context.ClearDepthStencilView(depthStencilView, DepthStencilClearFlags.Depth, 1.0f, 0);
+            var vertexShaderByteCode = ShaderBytecode.CompileFromFile("VertexShader.hlsl", "VSMain", "vs_4_0");
+            vertexShader = new VertexShader(device, vertexShaderByteCode);
 
-            var axisVertices = new[]
+            var pixelShaderByteCode = ShaderBytecode.CompileFromFile("PixelShader.hlsl", "PSMain", "ps_4_0");
+            pixelShader = new PixelShader(device, pixelShaderByteCode);
+
+            inputLayout = new InputLayout(device, ShaderSignature.GetInputSignature(vertexShaderByteCode), new[]
             {
-                // Axis Y
-                new Vector3(0, -10, 0),
-                new Vector3(0, 10, 0),
-                // Axis X
-                new Vector3(-10, 0, 0),
-                new Vector3(10, 0, 0),
-                // Axis Z
-                new Vector3(0, 0, -10),
-                new Vector3(0, 0, 10)
-            };
-
-            var colors = new[]
-            {
-                Color.White.ToArgb(),
-                Color.White.ToArgb(),
-                Color.White.ToArgb(),
-                Color.White.ToArgb(),
-                Color.White.ToArgb(),
-                Color.White.ToArgb()
-            };
-
-            var vertices = new[]
-            {
-                new VertexPositionColor { Position = axisVertices[0], Color = colors[0] },
-                new VertexPositionColor { Position = axisVertices[1], Color = colors[1] },
-                new VertexPositionColor { Position = axisVertices[2], Color = colors[2] },
-                new VertexPositionColor { Position = axisVertices[3], Color = colors[3] },
-                new VertexPositionColor { Position = axisVertices[4], Color = colors[4] },
-                new VertexPositionColor { Position = axisVertices[5], Color = colors[5] }
-            };
-
-            var vertexBuffer = Buffer.Create(device, BindFlags.VertexBuffer, vertices);
-
-            context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexPositionColor>(), 0));
-            context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
-
-            context.Draw(vertices.Length, 0);
-
-            swapChain.Present(0, PresentFlags.None);
-        }
-
-        private void SetupProjection()
-        {
-            SetupLight();
-            SetupCamera();
-        }
-
-        private void SetupLight()
-        {
-            // Light setup is generally handled in shaders in DirectX 11
+                    new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+                    new InputElement("COLOR", 0, Format.R32G32B32A32_Float, 12, 0)
+                });
         }
 
         private void SetupCamera()
         {
+            cameraPosition = new Vector3(0, 0, -10);
+            cameraTarget = Vector3.Zero;
+            viewMatrix = Matrix.LookAtLH(cameraPosition, cameraTarget, Vector3.UnitY);
+            projectionMatrix = Matrix.PerspectiveFovLH((float)Math.PI / 4, 1.0f, 0.1f, 100.0f);
+        }
+
+        public void DrawAxis()
+        {
             var context = device.ImmediateContext;
 
-            var projectionMatrix = Matrix.PerspectiveFovLH(
-                (float)Math.PI / 4,
-                (float)swapChain.Description.ModeDescription.Width / swapChain.Description.ModeDescription.Height,
-                0.1f, 100.0f);
+            var vertices = new[]
+            {
+                    new VertexPositionColor { Position = new Vector3(0, -10, 0), Color = new Color4(1, 1, 1, 1) },
+                    new VertexPositionColor { Position = new Vector3(0, 10, 0), Color = new Color4(1, 1, 1, 1) },
+                    new VertexPositionColor { Position = new Vector3(10, 0, 0), Color = new Color4(1, 1, 1, 1) },
+                    new VertexPositionColor { Position = new Vector3(-10, 0, 0), Color = new Color4(1, 1, 1, 1) },
+                    new VertexPositionColor { Position = new Vector3(0, 0, 10), Color = new Color4(1, 1, 1, 1) },
+                    new VertexPositionColor { Position = new Vector3(0, 0, -10), Color = new Color4(1, 1, 1, 1) }
+                };
 
-            var viewMatrix = Matrix.LookAtLH(new Vector3(1, 2, -5), new Vector3(1, 2, 0), Vector3.UnitY);
+            using (var vertexBuffer = Buffer.Create(device, BindFlags.VertexBuffer, vertices))
+            {
+                context.ClearRenderTargetView(renderTargetView, new RawColor4(0, 0.5f, 0.5f, 1));
+                context.ClearDepthStencilView(depthStencilView, DepthStencilClearFlags.Depth, 1.0f, 0);
 
-            // Update the view and projection matrices here
+                context.InputAssembler.InputLayout = inputLayout;
+                context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
+                context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexPositionColor>(), 0));
+
+                context.VertexShader.Set(vertexShader);
+                context.PixelShader.Set(pixelShader);
+
+                var worldViewProj = Matrix.Identity * viewMatrix * projectionMatrix;
+                var matrixBytes = Utilities.ToByteArray(new Matrix[] { worldViewProj });
+
+                using (var dataStream = new DataStream(matrixBytes.Length, true, true))
+                {
+                    dataStream.Write(matrixBytes, 0, matrixBytes.Length);
+
+                    constantBuffer = new Buffer(device, dataStream, new BufferDescription
+                    {
+                        Usage = ResourceUsage.Default,
+                        BindFlags = BindFlags.ConstantBuffer,
+                        CpuAccessFlags = CpuAccessFlags.None,
+                        OptionFlags = ResourceOptionFlags.None,
+                        StructureByteStride = 0,
+                        SizeInBytes = Utilities.SizeOf<Matrix>()
+                    });
+
+                    context.UpdateSubresource(ref worldViewProj, constantBuffer);
+                    context.VertexShader.SetConstantBuffer(0, constantBuffer);
+
+                    context.Draw(vertices.Length, 0);
+                    swapChain.Present(0, PresentFlags.None);
+                }
+            }
+        }
+
+        public void MoveCameraForward() => MoveCamera(Vector3.ForwardLH);
+        public void MoveCameraBackward() => MoveCamera(Vector3.BackwardLH);
+        public void MoveCameraLeft() => MoveCamera(Vector3.Left);
+        public void MoveCameraRight() => MoveCamera(Vector3.Right);
+        public void MoveCameraUp() => MoveCamera(Vector3.Up);
+        public void MoveCameraDown() => MoveCamera(Vector3.Down);
+        public void RotateCameraLeft() => RotateCamera(-1);
+        public void RotateCameraRight() => RotateCamera(1);
+
+        private void MoveCamera(Vector3 direction)
+        {
+            cameraPosition += direction;
+            UpdateViewMatrix();
+        }
+
+        private void RotateCamera(float angle)
+        {
+            var rotation = Matrix.RotationY(angle * (float)Math.PI / 180.0f);
+            cameraTarget = Vector3.TransformCoordinate(cameraTarget - cameraPosition, rotation) + cameraPosition;
+            UpdateViewMatrix();
+        }
+
+        private void UpdateViewMatrix()
+        {
+            viewMatrix = Matrix.LookAtLH(cameraPosition, cameraTarget, Vector3.UnitY);
+        }
+
+        public void DrawVector(Vector3 startPoint, Vector3 endPoint, string vectorName)
+        {
+            var context = device.ImmediateContext;
+
+            var vertices = new[]
+            {
+                    new VertexPositionColor { Position = startPoint, Color = new Color4(1, 0, 0, 1) },
+                    new VertexPositionColor { Position = endPoint, Color = new Color4(1, 0, 0, 1) }
+                };
+
+            vectors.Add(startPoint);
+            vectors.Add(endPoint);
+            vectorNames.Add(vectorName);
+
+            using (var vertexBuffer = Buffer.Create(device, BindFlags.VertexBuffer, vectors.ToArray()))
+            {
+                context.ClearRenderTargetView(renderTargetView, new RawColor4(0, 0.5f, 0.5f, 1));
+                context.ClearDepthStencilView(depthStencilView, DepthStencilClearFlags.Depth, 1.0f, 0);
+
+                context.InputAssembler.InputLayout = inputLayout;
+                context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
+                context.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(vertexBuffer, Utilities.SizeOf<VertexPositionColor>(), 0));
+
+                context.VertexShader.Set(vertexShader);
+                context.PixelShader.Set(pixelShader);
+
+                var worldViewProj = Matrix.Identity * viewMatrix * projectionMatrix;
+                var matrixBytes = Utilities.ToByteArray(new Matrix[] { worldViewProj });
+
+                using (var dataStream = new DataStream(matrixBytes.Length, true, true))
+                {
+                    dataStream.Write(matrixBytes, 0, matrixBytes.Length);
+
+                    context.UpdateSubresource(ref worldViewProj, constantBuffer);
+                    context.VertexShader.SetConstantBuffer(0, constantBuffer);
+
+                    context.Draw(vectors.Count, 0);
+                    swapChain.Present(0, PresentFlags.None);
+                }
+            }
         }
 
         public void Dispose()
         {
-            renderTargetView.Dispose();
+            vertexBuffer.Dispose();
+            inputLayout.Dispose();
+            pixelShader.Dispose();
+            vertexShader.Dispose();
             depthStencilView.Dispose();
+            renderTargetView.Dispose();
             swapChain.Dispose();
             device.Dispose();
         }
 
-        struct VertexPositionColor
+        private struct VertexPositionColor
         {
             public Vector3 Position;
-            public int Color;
+            public Color4 Color;
         }
     }
 }
